@@ -17,6 +17,7 @@ export default function DeploymentTemplateOverride({ parentState, setParentState
     const [chartRefLoading, setChartRefLoading] = useState(null)
 
     const memoisedReducer = useCallback((state, action) => {
+        console.log(action.value)
         switch (action.type) {
             case 'toggleCollapse':
                 return { ...state, collapsed: !Boolean(state.collapsed) }
@@ -231,6 +232,7 @@ function DeploymentTemplateOverrideForm({ state, handleOverride, dispatch, initi
                     </div>}
                 </div>
                 <div className="code-editor-container">
+                    {console.log(state.duplicate)}
                     <CodeEditor
                         value={state ? state.duplicate ? YAML.stringify(state.duplicate, { indent: 4 }) : YAML.stringify(state.data.globalConfig, { indent: 4 }) : ""}
                         onChange={res => setTempValue(res)}
