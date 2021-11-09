@@ -49,8 +49,8 @@ function DeploymentConfigForm({ respondOnSuccess }) {
     const [appMetricsLoading, setAppMetricsLoading] = useState(false)
     const [chartConfig, setChartConfig] = useState(null)
     const [isAppMetricsEnabled, toggleAppMetrics] = useState(null)
-    const [tempFormData, setTempFormData] = useState("")
-    const [obj, json, yaml, error] = useJsonYaml(tempFormData, 4, 'yaml', true);
+    const [templateJSON, setTemplateJSON] = useState("")
+    const [obj, json, yaml, error] = useJsonYaml(templateJSON, 4, 'yaml', true);
     const [chartConfigLoading, setChartConfigLoading] = useState(null)
     const [showConfirmation, toggleConfirmation] = useState(false)
 
@@ -62,7 +62,7 @@ function DeploymentConfigForm({ respondOnSuccess }) {
     //     if (typeof chartConfigLoading === 'boolean' && !chartConfigLoading) {
     //         fetchDeploymentTemplate()
     //     }
-    // }, [chartConfigLoading])
+    // }, [])
 
     useEffectAfterMount(() => {
         fetchDeploymentTemplate();
@@ -96,7 +96,7 @@ function DeploymentConfigForm({ respondOnSuccess }) {
             selectChart(chart);
         }
         catch (err) {
-
+           showError(err)
         }
         finally {
             setChartConfigLoading(false)
@@ -106,12 +106,26 @@ function DeploymentConfigForm({ respondOnSuccess }) {
     async function fetchDeploymentTemplate() {
         setChartConfigLoading(true)
         try {
-            const { result: { globalConfig: { defaultAppOverride, id, refChartTemplate, refChartTemplateVersion, isAppMetricsEnabled, chartRefId } } } = await getDeploymentTemplate(+appId, selectedChart.id)
-            setTemplate(defaultAppOverride)
-            setChartConfig({ id, refChartTemplate, refChartTemplateVersion, chartRefId })
-            toggleAppMetrics(isAppMetricsEnabled)
-            setTempFormData(JSON.stringify(defaultAppOverride, null, 2))
+            // const { result: { globalConfig: { defaultAppOverride, id, refChartTemplate, refChartTemplateVersion, isAppMetricsEnabled, chartRefId } } } = await getDeploymentTemplate(+appId, selectedChart.id)
+            getDeploymentTemplate(+appId, selectedChart.id).then((_result) => {
+                
+                let globalConfig = {..._result.result.globalConfig}
+               
+                console.log(_result)
+                setTemplate(globalConfig.defaultAppOverride)
+                setChartConfig({
+                    id: globalConfig.id,
+                    refChartTemplate: globalConfig.refChartTemplate, 
+                    refChartTemplateVersion: globalConfig.refChartTemplateVersion,
+                    chartRefId: globalConfig.chartRefId })
+                toggleAppMetrics(globalConfig.isAppMetricsEnabled)
+                setTemplateJSON(JSON.stringify(globalConfig.defaultAppOverride, null, 2))
+            }).catch((err)=>{
+                showError(err)
+            })
+
         }
+
         catch (err) {
             showError(err);
         }
@@ -169,6 +183,7 @@ function DeploymentConfigForm({ respondOnSuccess }) {
     const appMetricsEnvironmentVariableEnabled = window._env_ && window._env_.APPLICATION_METRICS_ENABLED;
     return (
         <>
+        {console.log('new temp', template)}
             <form action="" className="white-card white-card__deployment-config" onSubmit={handleSubmit}>
                 <div className="form__row">
                     <div className="form__label">Chart version</div>
@@ -198,16 +213,18 @@ function DeploymentConfigForm({ respondOnSuccess }) {
                     />
                 </div>
                 <div className="form__row form__row--code-editor-container">
-                    <CodeEditor
-                        value={tempFormData}
-                        onChange={resp => { setTempFormData(resp) }}
+                    {console.log(template)}
+
+                    {template && <CodeEditor
+                        value={JSON.stringify(template, null, 2)}
+                        onChange={resp => { setTemplateJSON(resp) }}
                         mode="yaml"
                         loading={chartConfigLoading}>
                         <CodeEditor.Header>
                             <CodeEditor.LanguageChanger />
                             <CodeEditor.ValidationError />
                         </CodeEditor.Header>
-                    </CodeEditor>
+                    </CodeEditor>}
                 </div>
                 <div className="form__buttons">
                     <button className="cta" type="submit">{loading ? <Progressing /> : 'Save'}</button>
